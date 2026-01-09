@@ -83,7 +83,7 @@ A full-stack application featuring a secure, scalable backend API with JWT authe
 
 1. **Clone and setup**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Eminence-bit/scalable-rest-api-assignment
    cd scalable-rest-api
    npm run setup
    ```
