@@ -10,8 +10,12 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
 const userRoutes = require('./routes/users');
+const { logger, errorLogger, appLogger } = require('./middleware/logger');
 
 const app = express();
+
+// Logging middleware (should be first)
+app.use(logger);
 
 // Security middleware
 app.use(helmet());
@@ -66,6 +70,7 @@ app.use('/api/v1/users', userRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
+  appLogger.info('Health check requested');
   res.status(200).json({
     status: 'success',
     message: 'Server is running',
@@ -73,9 +78,12 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Error logging middleware
+app.use(errorLogger);
+
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  appLogger.error('Unhandled error', { error: err.message, stack: err.stack });
   res.status(err.status || 500).json({
     status: 'error',
     message: err.message || 'Internal server error'
@@ -84,6 +92,7 @@ app.use((err, req, res, next) => {
 
 // 404 handler
 app.use('*', (req, res) => {
+  appLogger.warn('Route not found', { method: req.method, url: req.originalUrl });
   res.status(404).json({
     status: 'error',
     message: 'Route not found'
@@ -92,11 +101,18 @@ app.use('*', (req, res) => {
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected successfully'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .then(() => {
+    appLogger.info('MongoDB connected successfully');
+    console.log('MongoDB connected successfully');
+  })
+  .catch(err => {
+    appLogger.error('MongoDB connection error', { error: err.message });
+    console.error('MongoDB connection error:', err);
+  });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
+  appLogger.info('Server started', { port: PORT });
   console.log(`Server running on port ${PORT}`);
   console.log(`API Documentation: http://localhost:${PORT}/api-docs`);
 });
